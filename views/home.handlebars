@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inicio</title>
+    <style>
+        /* Estilos globales */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+
+        h1 {
+            text-align: center;
+            margin-top: 20px;
+            color: #4CAF50;
+            font-size: 2rem;
+        }
+
+        /* Contenedor de productos */
+        .products-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 20px auto;
+        }
+
+        /* Tarjeta de producto */
+        .product-card {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .product-card img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+
+        .product-card-content {
+            padding: 15px;
+        }
+
+        .product-card h3 {
+            margin: 0 0 10px;
+            font-size: 1.2rem;
+            color: #333;
+        }
+
+        .product-card p {
+            margin: 0 0 10px;
+            color: #666;
+        }
+
+        .product-card .price {
+            font-size: 1rem;
+            color: #4CAF50;
+            font-weight: bold;
+        }
+
+        .product-card .button-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 10px;
+        }
+
+        .product-card button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.3s ease;
+        }
+
+        .product-card button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Lista de Productos</h1>
+    <div class="products-container">
+        {{#each products}}
+        <div class="product-card">
+            <img src="{{thumbnails.[0]}}" alt="{{title}}" />
+            <div class="product-card-content">
+                <h3>{{title}}</h3>
+                <p>{{description}}</p>
+                <p class="price">$ {{price}}</p>
+                <div class="button-container">
+                    <button onclick="addToCart('{{id}}')">Agregar al Carrito</button>
+                </div>
+            </div>
+        </div>
+        {{/each}}
+    </div>
+
+    <script>
+        // Función para agregar productos al carrito
+        async function addToCart(productId) {
+            try {
+                const res = await fetch(`/api/carts/cart_1/product/${productId}`, {
+                    method: 'POST',
+                });
+                if (res.ok) {
+                    alert('Producto agregado al carrito.');
+                } else {
+                    alert('Hubo un error al agregar el producto al carrito.');
+                }
+            } catch (error) {
+                console.error('Error al agregar producto al carrito:', error);
+                alert('No se pudo agregar el producto al carrito.');
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,67 +1,57 @@
 [
   {
-    "id": "1",
+    "id": "prod_1",
     "title": "Yerba Mate Taragüí",
     "description": "Yerba mate clásica de sabor intenso y duradero.",
-    "code": "YERB001",
     "price": 1200,
     "stock": 50,
     "category": "Infusiones",
     "thumbnails": [
       "images/yerba_taragui.jpg"
-    ],
-    "status": true
+    ]
   },
   {
-    "id": "2",
+    "id": "prod_2",
     "title": "Café Bonafide",
     "description": "Café molido premium para los amantes del buen sabor.",
-    "code": "CAF002",
     "price": 850,
     "stock": 30,
     "category": "Infusiones",
     "thumbnails": [
-      "images/cafe_bonafide.jpg"
-    ],
-    "status": true
+      "images/cafe_bonafide.png"
+    ]
   },
   {
-    "id": "3",
+    "id": "prod_3",
     "title": "Azúcar Ledesma 1kg",
     "description": "Azúcar refinada de alta calidad.",
-    "code": "AZUC003",
     "price": 300,
     "stock": 100,
     "category": "Alimentos Básicos",
     "thumbnails": [
       "images/azucar_ledesma.jpg"
-    ],
-    "status": true
+    ]
   },
   {
-    "id": "4",
+    "id": "prod_4",
     "title": "Harina 0000 Blancaflor 1kg",
     "description": "Harina refinada ideal para todo tipo de comidas.",
-    "code": "HAR004",
     "price": 400,
     "stock": 75,
     "category": "Alimentos Básicos",
     "thumbnails": [
       "images/harina_blancaflor.jpg"
-    ],
-    "status": true
+    ]
   },
   {
-    "id": "5",
+    "id": "prod_5",
     "title": "Aceite de Girasol Natura 1L",
     "description": "Aceite puro de girasol, ideal para cocinar.",
-    "code": "ACE005",
     "price": 1500,
     "stock": 40,
     "category": "Aceites",
     "thumbnails": [
-      "images/aceite_natura.jpg"
-    ],
-    "status": true
+      "images/aceite_natura.png"
+    ]
   }
 ]

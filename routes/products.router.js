@@ -1,100 +1,67 @@
 const express = require('express');
+const multer = require('multer');
+const path = require('path');
 const { readProductsFromFile, writeProductsToFile } = require('../helpers/fileSystem');
 
-// Inicializar el router
-const productsRouter = express.Router();
+// Configuración de multer
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, path.join(__dirname, '../public/images'));
+    },
+    filename: (req, file, cb) => {
+        cb(null, `${Date.now()}-${file.originalname}`);
+    }
+});
+const upload = multer({ storage });
 
-// Rutas de productos
-productsRouter.get('/', async (req, res) => {
+const router = express.Router();
+
+// Obtener todos los productos
+router.get('/', async (req, res) => {
     try {
         const products = await readProductsFromFile();
-        const limit = parseInt(req.query.limit, 10);
-
-        if (limit && limit > 0) {
-            return res.json(products.slice(0, limit));
-        }
         res.json(products);
     } catch (error) {
+        console.error('Error al obtener productos:', error.message);
         res.status(500).json({ error: 'Error al obtener los productos' });
     }
 });
 
-productsRouter.get('/:pid', async (req, res) => {
-    const { pid } = req.params;
-    try {
-        const products = await readProductsFromFile();
-        const product = products.find(prod => prod.id === pid);
+// Crear un nuevo producto con imagen adjunta
+router.post('/', upload.single('image'), async (req, res) => {
+    const { title, description, price, stock, category } = req.body;
 
-        if (!product) {
-            return res.status(404).json({ error: 'Producto no encontrado' });
-        }
-
-        res.json(product);
-    } catch (error) {
-        res.status(500).json({ error: 'Error al obtener el producto' });
-    }
-});
-
-productsRouter.post('/', async (req, res) => {
-    const { title, description, code, price, stock, category, thumbnails } = req.body;
-
-    if (!title || !description || !code || !price || !stock || !category) {
-        return res.status(400).json({ error: 'Todos los campos son obligatorios, excepto thumbnails' });
+    if (!title || !description || typeof price !== 'number' || typeof stock !== 'number' || !category) {
+        return res.status(400).json({ error: 'Todos los campos son obligatorios y deben ser válidos' });
     }
 
     try {
         const products = await readProductsFromFile();
-        const id = `prod_${Date.now()}`;
-
         const newProduct = {
-            id,
+            id: `prod_${Date.now()}`,
             title,
             description,
-            code,
-            price,
-            status: true,
-            stock,
+            price: Number(price),
+            stock: Number(stock),
             category,
-            thumbnails: thumbnails || [],
+            thumbnails: req.file ? [`/images/${req.file.filename}`] : ['/images/default.jpg'] // Ruta de la imagen
         };
 
         products.push(newProduct);
         await writeProductsToFile(products);
-
-        res.status(201).json({ message: 'Producto creado', product: newProduct });
+        res.status(201).json({ message: 'Producto creado exitosamente', product: newProduct });
     } catch (error) {
+        console.error('Error al crear producto:', error.message);
         res.status(500).json({ error: 'Error al crear el producto' });
     }
 });
 
-productsRouter.put('/:pid', async (req, res) => {
-    const { pid } = req.params;
-    const updatedFields = req.body;
-
+// Eliminar un producto
+router.delete('/:id', async (req, res) => {
     try {
+        const { id } = req.params;
         const products = await readProductsFromFile();
-        const productIndex = products.findIndex(product => product.id === pid);
-
-        if (productIndex === -1) {
-            return res.status(404).json({ error: 'Producto no encontrado' });
-        }
-
-        delete updatedFields.id;
-        products[productIndex] = { ...products[productIndex], ...updatedFields };
-
-        await writeProductsToFile(products);
-        res.json({ message: 'Producto actualizado', product: products[productIndex] });
-    } catch (error) {
-        res.status(500).json({ error: 'Error al actualizar el producto' });
-    }
-});
-
-productsRouter.delete('/:pid', async (req, res) => {
-    const { pid } = req.params;
-
-    try {
-        const products = await readProductsFromFile();
-        const productIndex = products.findIndex(product => product.id === pid);
+        const productIndex = products.findIndex(p => p.id === id);
 
         if (productIndex === -1) {
             return res.status(404).json({ error: 'Producto no encontrado' });
@@ -103,11 +70,11 @@ productsRouter.delete('/:pid', async (req, res) => {
         products.splice(productIndex, 1);
         await writeProductsToFile(products);
 
-        res.json({ message: 'Producto eliminado' });
+        res.json({ message: 'Producto eliminado exitosamente' });
     } catch (error) {
+        console.error('Error al eliminar producto:', error.message);
         res.status(500).json({ error: 'Error al eliminar el producto' });
     }
 });
 
-// Exportar el router
-module.exports = productsRouter;
+module.exports = router;
