@@ -1,26 +1,33 @@
 const express = require('express');
-const { createServer } = require('http');
-const { Server } = require('socket.io');
-const { engine } = require('express-handlebars');
+const mongoose = require('mongoose');
+const { create } = require('express-handlebars');
 const path = require('path');
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpecs = require('./swagger');
+require('dotenv').config();
+
+// Rutas
 const productsRouter = require('./routes/products.router');
 const cartsRouter = require('./routes/carts.router');
 const viewsRouter = require('./routes/views.router');
-const { readProductsFromFile } = require('./helpers/fileSystem');
 
 const app = express();
-const httpServer = createServer(app);
-const io = new Server(httpServer);
 
-// Configurar Handlebars
-app.engine(
-    'handlebars',
-    engine({
-        defaultLayout: 'main',
-        layoutsDir: path.join(__dirname, 'views', 'layouts'),
-        partialsDir: path.join(__dirname, 'views', 'partials'),
-    })
-);
+// Configuración de Handlebars con un helper para acceder a índices
+const hbs = create({
+    defaultLayout: 'main',
+    layoutsDir: path.join(__dirname, 'views', 'layouts'),
+    partialsDir: path.join(__dirname, 'views', 'partials'),
+    runtimeOptions: {
+        allowProtoPropertiesByDefault: true, // Permite propiedades heredadas
+        allowProtoMethodsByDefault: true,   // Permite métodos heredados (opcional)
+    },
+    helpers: {
+        getIndex: (array, index) => (Array.isArray(array) ? array[index] : ''), // Helper para obtener índices de arrays
+    },
+});
+
+app.engine('handlebars', hbs.engine);
 app.set('view engine', 'handlebars');
 app.set('views', path.join(__dirname, 'views'));
 
@@ -29,30 +36,34 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Documentación de APIs
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
 
-// Rutas
+// Conexión a MongoDB
+mongoose.connect(process.env.MONGO_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+})
+    .then(() => console.log('Conectado a MongoDB Atlas'))
+    .catch(err => {
+        console.error('Error al conectar a MongoDB:', err.message);
+        process.exit(1);
+    });
+
+// Rutas de API
 app.use('/api/products', productsRouter);
 app.use('/api/carts', cartsRouter);
+
+// Rutas de vistas
 app.use('/', viewsRouter);
 
-// WebSocket para productos en tiempo real
-io.on('connection', async (socket) => {
-    console.log('Cliente conectado');
-    try {
-        const products = await readProductsFromFile();
-        socket.emit('updateProducts', products);
-
-        socket.on('productUpdated', async () => {
-            const updatedProducts = await readProductsFromFile();
-            io.emit('updateProducts', updatedProducts);
-        });
-    } catch (error) {
-        console.error('Error en WebSocket:', error.message);
-    }
+// Manejo de Rutas No Encontradas
+app.use((req, res) => {
+    res.status(404).render('404', { title: 'Página no encontrada' });
 });
 
-// Servidor
-const PORT = 8580;
-httpServer.listen(PORT, () => {
+// Iniciar servidor
+const PORT = process.env.PORT || 8580;
+app.listen(PORT, () => {
     console.log(`Servidor corriendo en http://localhost:${PORT}`);
 });

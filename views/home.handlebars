@@ -1,137 +1,391 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inicio</title>
-    <style>
-        /* Estilos globales */
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f9;
-            margin: 0;
-            padding: 0;
-            color: #333;
-        }
-
-        h1 {
-            text-align: center;
-            margin-top: 20px;
-            color: #4CAF50;
-            font-size: 2rem;
-        }
-
-        /* Contenedor de productos */
-        .products-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            padding: 20px;
-            max-width: 1200px;
-            margin: 20px auto;
-        }
-
-        /* Tarjeta de producto */
-        .product-card {
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        .product-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-        }
-
-        .product-card img {
-            width: 100%;
-            height: 200px;
-            object-fit: cover;
-        }
-
-        .product-card-content {
-            padding: 15px;
-        }
-
-        .product-card h3 {
-            margin: 0 0 10px;
-            font-size: 1.2rem;
-            color: #333;
-        }
-
-        .product-card p {
-            margin: 0 0 10px;
-            color: #666;
-        }
-
-        .product-card .price {
-            font-size: 1rem;
-            color: #4CAF50;
-            font-weight: bold;
-        }
-
-        .product-card .button-container {
-            display: flex;
-            justify-content: center;
-            margin-top: 10px;
-        }
-
-        .product-card button {
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 1rem;
-            transition: background-color 0.3s ease;
-        }
-
-        .product-card button:hover {
-            background-color: #45a049;
-        }
-    </style>
+    <link rel="stylesheet" href="/css/styles.css">
 </head>
-
 <body>
-    <h1>Lista de Productos</h1>
-    <div class="products-container">
-        {{#each products}}
-        <div class="product-card">
-            <img src="{{thumbnails.[0]}}" alt="{{title}}" />
-            <div class="product-card-content">
-                <h3>{{title}}</h3>
-                <p>{{description}}</p>
-                <p class="price">$ {{price}}</p>
-                <div class="button-container">
-                    <button onclick="addToCart('{{id}}')">Agregar al Carrito</button>
+    <button id="toggle-cart-btn" class="btn-primary" onclick="toggleCartModal()">
+        <svg class="cart-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="20" height="20">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M16 16a2 2 0 11-4 0 2 2 0 014 0zM10 16a2 2 0 11-4 0 2 2 0 014 0z" />
+        </svg>
+        Ver Carrito
+    </button>
+        <main>
+            <div class="products-page">
+                <h1 style="text-align:center;">Lista de Productos</h1>
+                <div id="products-list">
+                    <!-- Los productos se renderizan aquí dinámicamente -->
                 </div>
             </div>
-        </div>
-        {{/each}}
+        </main>
     </div>
+    <div id="pagination-container" class="pagination"></div>
+    <div class="main-container">
+        <div id="cart-modal" class="cart-modal" draggable="true">
+            <div class="cart-modal-header" id="cart-modal-header">
+                <h3>Tu Carrito</h3>
+                <button class="close-modal" onclick="toggleCartModal()">✖</button>
+            </div>
+            <div id="cart-modal-content" class="cart-modal-content">
+                <!-- Productos del carrito -->
+            </div>
+            <div class="cart-modal-footer">
+                <p id="cart-modal-total">Total: $0.00</p>
+                <button class="btn-primary" onclick="finalizeCart()">Finalizar Compra</button>
+            </div>
+        </div>
+    <div id="notifications-container"></div>
 
     <script>
-        // Función para agregar productos al carrito
-        async function addToCart(productId) {
-            try {
-                const res = await fetch(`/api/carts/cart_1/product/${productId}`, {
-                    method: 'POST',
-                });
-                if (res.ok) {
-                    alert('Producto agregado al carrito.');
-                } else {
-                    alert('Hubo un error al agregar el producto al carrito.');
-                }
-            } catch (error) {
-                console.error('Error al agregar producto al carrito:', error);
-                alert('No se pudo agregar el producto al carrito.');
+        const apiBaseUrl = '/api';
+        const cartKey = 'tempCart'; // Clave para localStorage
+        let tempCart = JSON.parse(localStorage.getItem(cartKey)) || { title: "Carrito Temporal", products: [] };
+
+        // Mostrar y ocultar el modal del carrito
+        function toggleCartModal() {
+            const cartModal = document.getElementById('cart-modal');
+            const toggleBtn = document.getElementById('toggle-cart-btn');
+
+            if (cartModal.classList.contains('hidden')) {
+                cartModal.classList.remove('hidden');
+                cartModal.classList.add('open');
+                toggleBtn.textContent = '✖ Cerrar Carrito';
+            } else {
+                cartModal.classList.remove('open');
+                cartModal.classList.add('hidden');
+                toggleBtn.textContent = '🛒 Ver Carrito';
             }
         }
+
+        // Función para hacer el carrito movible
+        function makeCartDraggable() {
+            const cartModal = document.getElementById('cart-modal');
+            const header = document.getElementById('cart-modal-header');
+            let isDragging = false;
+            let offsetX = 0;
+            let offsetY = 0;
+
+            // Iniciar el arrastre
+            header.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                offsetX = e.clientX - cartModal.offsetLeft;
+                offsetY = e.clientY - cartModal.offsetTop;
+                header.style.cursor = 'grabbing';
+            });
+
+            // Mover el carrito
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                cartModal.style.left = `${e.clientX - offsetX}px`;
+                cartModal.style.top = `${e.clientY - offsetY}px`;
+            });
+
+            // Finalizar el arrastre
+            document.addEventListener('mouseup', () => {
+                isDragging = false;
+                header.style.cursor = 'grab';
+            });
+        }
+
+        // Llamar a la función al cargar la página
+        document.addEventListener('DOMContentLoaded', makeCartDraggable);
+
+
+        // Guardar el carrito en localStorage
+        function saveCartToStorage() {
+            localStorage.setItem(cartKey, JSON.stringify(tempCart));
+        }
+
+        // Crear un carrito temporal si no existe
+        function initializeCart() {
+            if (!tempCart || !tempCart.products) {
+                tempCart = { title: "Carrito Temporal", products: [] };
+                saveCartToStorage();
+                console.log("Carrito temporal creado.");
+            }
+        }
+
+        let currentPage = 1;
+        let totalPages = 1;
+
+        async function loadProducts(page = 1) {
+            try {
+                const response = await fetch(`${apiBaseUrl}/products?page=${page}`);
+                if (!response.ok) throw new Error(`Error al cargar los productos: ${response.statusText}`);
+
+                const data = await response.json();
+                const productsList = document.getElementById('products-list');
+                productsList.innerHTML = '';
+
+                if (!data.products || data.products.length === 0) {
+                    productsList.innerHTML = '<p>No hay productos disponibles.</p>';
+                    return;
+                }
+
+                data.products.forEach(product => {
+                    const productDiv = document.createElement('div');
+                    productDiv.className = 'product-card';
+                    productDiv.setAttribute('data-id', product._id);
+                    productDiv.setAttribute('data-title', product.title);
+                    productDiv.setAttribute('data-price', product.price);
+
+                    productDiv.innerHTML = `
+                        <img src="${product.thumbnails[0]}" alt="${product.title}">
+                        <h3>${product.title}</h3>
+                        <p><strong>Precio:</strong> $${product.price.toFixed(2)}</p>
+                        <div class="details">
+                            <p><strong>Descripción:</strong> ${product.description}</p>
+                            <p><strong>Stock:</strong> ${product.stock}</p>
+                        </div>
+                        <button class="add-to-cart-btn" onclick="addToCart('${product._id}', 1, event)">Agregar al Carrito</button>
+                    `;
+                    productsList.appendChild(productDiv);
+                });
+
+                currentPage = data.currentPage;
+                totalPages = data.totalPages;
+                renderPaginationControls();
+            } catch (error) {
+                console.error('Error al cargar productos:', error);
+                document.getElementById('products-list').innerHTML = '<p>Ocurrió un error al cargar los productos.</p>';
+            }
+        }
+
+        function renderPaginationControls() {
+            const paginationContainer = document.getElementById('pagination-container');
+            paginationContainer.innerHTML = '';
+
+            // Botón de página anterior
+            if (currentPage > 1) {
+                const prevButton = document.createElement('button');
+                prevButton.textContent = 'Anterior';
+                prevButton.onclick = () => loadProducts(currentPage - 1);
+                paginationContainer.appendChild(prevButton);
+            }
+
+            // Números de página
+            for (let i = 1; i <= totalPages; i++) {
+                const pageButton = document.createElement('button');
+                pageButton.textContent = i;
+                pageButton.className = i === currentPage ? 'active' : '';
+                pageButton.onclick = () => loadProducts(i);
+                paginationContainer.appendChild(pageButton);
+            }
+
+            // Botón de página siguiente
+            if (currentPage < totalPages) {
+                const nextButton = document.createElement('button');
+                nextButton.textContent = 'Siguiente';
+                nextButton.onclick = () => loadProducts(currentPage + 1);
+                paginationContainer.appendChild(nextButton);
+            }
+        }
+
+
+        // Agregar un producto al carrito
+        function addToCart(productId, quantity, event) {
+            event.stopPropagation();
+
+            initializeCart(); // Crear carrito si no existe
+
+            // Obtener los datos del producto directamente desde los atributos `data-*`
+            const productElement = event.target.closest('.product-card');
+            const title = productElement.getAttribute('data-title');
+            const priceText = productElement.getAttribute('data-price');
+            const price = parseFloat(priceText);
+
+            console.log(`[DEBUG] Agregando producto: ${title}, Precio: ${price}, Cantidad: ${quantity}`);
+
+            if (!title || isNaN(price) || price <= 0) {
+                console.error(`[ERROR] Datos no válidos para el producto con ID: ${productId}`);
+                showNotification(`Error: No se pudo agregar el producto al carrito.`);
+                return;
+            }
+
+            // Verificar si el producto ya está en el carrito
+            const existingProduct = tempCart.products.find(p => p.productId === productId);
+
+            if (existingProduct) {
+                existingProduct.quantity += quantity;
+                console.log(`[INFO] Producto existente. Nueva cantidad: ${existingProduct.quantity}`);
+            } else {
+                const product = { productId, title, price, quantity };
+                tempCart.products.push(product);
+                console.log(`[INFO] Producto agregado al carrito:`, product);
+            }
+
+            saveCartToStorage(); // Guardar cambios en localStorage
+            updateCartModal(); // Actualizar contenido del modal del carrito
+            showNotification(`Producto agregado: ${title}`);
+        }
+
+
+
+        function debugProductCards() {
+            document.querySelectorAll('.product-card').forEach((card, index) => {
+                console.log(`[DEBUG] Tarjeta ${index + 1}:`, card.outerHTML);
+            });
+        }
+
+        debugProductCards(); // Llama esta función después de renderizar los productos
+
+        function updateCartSummary() {
+            const cartModalContent = document.getElementById('cart-modal-content');
+            const cartModalTotal = document.getElementById('cart-modal-total');
+            cartModalContent.innerHTML = ''; // Limpiar contenido previo
+            let total = 0;
+
+            if (!tempCart || tempCart.products.length === 0) {
+                cartModalContent.innerHTML = '<p>El carrito está vacío.</p>';
+                cartModalTotal.textContent = 'Total: $0.00';
+                return;
+            }
+
+            tempCart.products.forEach(item => {
+                const productTotal = (item.quantity * (item.price || 0)); // Validar que price sea un número
+                total += productTotal;
+
+                // Validar que price sea válido antes de usar toFixed
+                const priceDisplay = isNaN(item.price) || item.price <= 0 ? 'N/A' : `$${item.price.toFixed(2)}`;
+                const quantityDisplay = isNaN(item.quantity) || item.quantity <= 0 ? 'N/A' : item.quantity;
+
+                const div = document.createElement('div');
+                div.className = 'cart-item';
+                div.innerHTML = `
+                    <span>${item.title} - ${priceDisplay} x ${quantityDisplay}</span>
+                    <button class="btn-secondary" onclick="removeFromCart('${item.productId}')">❌</button>
+                `;
+                cartModalContent.appendChild(div);
+            });
+
+            cartModalTotal.textContent = `Total: $${total.toFixed(2)}`;
+        }
+
+
+
+        // Actualizar el contenido del modal del carrito
+        function updateCartModal() {
+            const cartModalContent = document.getElementById('cart-modal-content');
+            const cartModalTotal = document.getElementById('cart-modal-total');
+            cartModalContent.innerHTML = '';
+            let total = 0;
+
+            if (!tempCart || tempCart.products.length === 0) {
+                cartModalContent.innerHTML = '<p>El carrito está vacío.</p>';
+                cartModalTotal.textContent = 'Total: $0.00';
+                return;
+            }
+
+            tempCart.products.forEach(item => {
+                // Validar que item.price y item.quantity sean números válidos
+                const price = isNaN(item.price) || item.price === null ? 0 : item.price;
+                const quantity = isNaN(item.quantity) || item.quantity === null ? 0 : item.quantity;
+
+                const productTotal = quantity * price;
+                total += productTotal;
+
+                const priceDisplay = `$${price.toFixed(2)}`;
+                const quantityDisplay = quantity;
+
+                const div = document.createElement('div');
+                div.className = 'cart-item';
+                div.innerHTML = `
+                    <span>${item.title} - ${priceDisplay} x ${quantityDisplay}</span>
+                    <button class="btn-secondary" onclick="removeFromCart('${item.productId}')">❌</button>
+                `;
+                cartModalContent.appendChild(div);
+            });
+
+            cartModalTotal.textContent = `Total: $${total.toFixed(2)}`;
+        }
+
+
+        // Eliminar un producto del carrito
+        function removeFromCart(productId) {
+            tempCart.products = tempCart.products.filter(item => item.productId !== productId);
+            saveCartToStorage();
+            updateCartModal(); // Cambiado para reflejar la eliminación en el modal
+            showNotification('Producto eliminado del carrito.');
+        }
+
+
+        // Mostrar notificaciones temporales
+        function showNotification(message) {
+            const container = document.getElementById('notifications-container');
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            notification.textContent = message;
+            container.appendChild(notification);
+
+            setTimeout(() => {
+                notification.remove();
+            }, 2000);
+        }
+
+        // Confirmar el carrito actual
+        async function finalizeCart() {
+            if (!tempCart || tempCart.products.length === 0) {
+                showNotification("El carrito está vacío. Agrega productos antes de confirmar.");
+                return;
+            }
+
+            try {
+                // Paso 1: Crear el carrito con productos válidos
+                const createCartResponse = await fetch('/api/carts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        products: tempCart.products.map(item => ({
+                            product: item.productId, // ObjectId del producto
+                            quantity: item.quantity // Cantidad del producto
+                        }))
+                    })
+                });
+
+                if (!createCartResponse.ok) {
+                    const error = await createCartResponse.json();
+                    console.error(`[ERROR] Respuesta del servidor al crear carrito:`, error);
+                    throw new Error(error.error || 'Error al crear el carrito.');
+                }
+
+                const newCart = await createCartResponse.json();
+                const cartId = newCart.cart._id;
+
+                console.log(`[INFO] Carrito creado con ID: ${cartId}`);
+
+                // Paso 2: Confirmar el carrito
+                const confirmCartResponse = await fetch(`/api/carts/${cartId}/confirm`, {
+                    method: 'POST'
+                });
+
+                if (!confirmCartResponse.ok) {
+                    const error = await confirmCartResponse.json();
+                    console.error(`[ERROR] Respuesta del servidor al confirmar carrito:`, error);
+                    throw new Error(error.error || 'Error al confirmar el carrito.');
+                }
+
+                console.log(`[INFO] Carrito confirmado con éxito.`);
+                showNotification("Carrito confirmado con éxito.");
+                tempCart.products = []; // Limpiar el carrito local
+                saveCartToStorage();
+                updateCartModal(); // Actualizar la interfaz
+            } catch (error) {
+                console.error(`[ERROR] Error en el flujo de confirmación del carrito:`, error.message);
+                showNotification(`Error al confirmar el carrito: ${error.message}`);
+            }
+        }
+
+
+
+        // Inicialización
+        initializeCart(); // Asegurar que el carrito exista al cargar la página
+        loadProducts();
+        updateCartSummary();
+
+
     </script>
 </body>
 </html>

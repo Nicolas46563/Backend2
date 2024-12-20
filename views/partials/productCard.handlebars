@@ -1,0 +1,14 @@
+<div class="product-card" 
+    data-id="{{_id}}" 
+    data-title="{{title}}" 
+    data-price="{{price}}" 
+    onclick="toggleDetails(this, event)">
+    <img src="{{getIndex thumbnails 0}}" alt="{{title}}">
+    <h3>{{title}}</h3>
+    <p><strong>Precio:</strong> ${{price}}</p>
+    <div class="details">
+        <p><strong>Descripción:</strong> {{description}}</p>
+        <p><strong>Stock:</strong> {{stock}}</p>
+    </div>
+    <button class="add-to-cart-btn" onclick="addToCart('{{_id}}', 1, event)">Agregar al Carrito</button>
+</div>

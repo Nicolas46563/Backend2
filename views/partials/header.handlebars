@@ -1,113 +1,11 @@
 <header>
+    <div class="logo">
+        <a href="/" style="color: white; text-decoration: none; font-size: 24px; font-weight: bold;">E-Commerce</a>
+    </div>
     <nav>
-        <div class="logo">
-            <a href="/">🛒 Mi E-Commerce</a>
-        </div>
-        <ul class="nav-links">
+        <ul>
             <li><a href="/">Inicio</a></li>
-            <li><a href="/products">Gestión de Productos</a></li>
             <li><a href="/realtimeproducts">Productos en Tiempo Real</a></li>
-            <li><a href="/cart/cart_1">Mi Carrito</a></li>
         </ul>
-        <div class="burger">
-            <div class="line"></div>
-            <div class="line"></div>
-            <div class="line"></div>
-        </div>
     </nav>
 </header>
-
-<style>
-    /* Header Styles */
-    header {
-        background-color: #4CAF50;
-        color: white;
-        padding: 10px 20px;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        position: sticky;
-        top: 0;
-        z-index: 1000;
-    }
-
-    nav {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    /* Logo */
-    .logo a {
-        font-size: 1.5rem;
-        color: white;
-        text-decoration: none;
-        font-weight: bold;
-    }
-
-    /* Navigation Links */
-    .nav-links {
-        display: flex;
-        list-style: none;
-        gap: 20px;
-    }
-
-    .nav-links li {
-        display: inline;
-    }
-
-    .nav-links a {
-        color: white;
-        text-decoration: none;
-        font-size: 1rem;
-        transition: color 0.3s ease;
-    }
-
-    .nav-links a:hover {
-        color: #c8f7c5;
-    }
-
-    /* Burger Menu (for small screens) */
-    .burger {
-        display: none;
-        flex-direction: column;
-        cursor: pointer;
-    }
-
-    .burger .line {
-        width: 25px;
-        height: 3px;
-        background-color: white;
-        margin: 3px;
-    }
-
-    /* Responsive Design */
-    @media (max-width: 768px) {
-        .nav-links {
-            display: none;
-            flex-direction: column;
-            background-color: #4CAF50;
-            position: absolute;
-            top: 60px;
-            right: 0;
-            width: 100%;
-            text-align: center;
-        }
-
-        .nav-links.active {
-            display: flex;
-        }
-
-        .burger {
-            display: flex;
-        }
-    }
-</style>
-
-<script>
-    // Toggle navigation menu for small screens
-    const burger = document.querySelector('.burger');
-    const nav = document.querySelector('.nav-links');
-
-    burger.addEventListener('click', () => {
-        nav.classList.toggle('active');
-    });
-</script>
