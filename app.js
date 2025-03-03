@@ -4,12 +4,16 @@ const { create } = require('express-handlebars');
 const path = require('path');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpecs = require('./swagger');
+const cookieParser = require('cookie-parser');
+const passport = require('passport');
+require('./config/passport'); // Configuración de Passport
 require('dotenv').config();
 
 // Rutas
 const productsRouter = require('./routes/products.router');
 const cartsRouter = require('./routes/carts.router');
 const viewsRouter = require('./routes/views.router');
+const sessionRouter = require('./routes/session.router'); // Nueva ruta de autenticación
 
 const app = express();
 
@@ -35,6 +39,8 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(cookieParser()); // Para manejar cookies
+app.use(passport.initialize()); // Iniciar Passport
 
 // Documentación de APIs
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
@@ -53,6 +59,7 @@ mongoose.connect(process.env.MONGO_URI, {
 // Rutas de API
 app.use('/api/products', productsRouter);
 app.use('/api/carts', cartsRouter);
+app.use('/api/sessions', sessionRouter); // Nueva ruta de autenticación
 
 // Rutas de vistas
 app.use('/', viewsRouter);

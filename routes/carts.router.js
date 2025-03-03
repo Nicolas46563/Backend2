@@ -3,33 +3,111 @@ const {
     createCart,
     getCartById,
     addProductToCart,
-    removeProductFromCart, // Asegúrate de que esté definido
+    removeProductFromCart,
     confirmCart,
     addMultipleProductsToCart,
     getConfirmedCarts
 } = require('../controllers/carts.controller');
 
+const cartDAO = require('../dao/daos/cart.dao');
+const productDAO = require('../dao/daos/product.dao');
+const ticketDAO = require('../dao/daos/ticket.dao');
+const TicketDTO = require('../dao/dtos/ticket.dto');
+
 const router = express.Router();
 
-// Crear un nuevo carrito
+// 🔹 Crear un nuevo carrito
 router.post('/', createCart);
 
-// Agregar productos en masa al carrito
+// 🔹 Agregar productos en masa al carrito
 router.post('/:id/products/bulk', addMultipleProductsToCart);
 
-// Agregar un producto individual al carrito
+// 🔹 Agregar un producto individual al carrito
 router.post('/:id/products', addProductToCart);
 
-// Eliminar un producto del carrito
+// 🔹 Eliminar un producto del carrito
 router.delete('/:id/products/:productId', removeProductFromCart);
 
-// Confirmar un carrito
+// 🔹 Confirmar un carrito
 router.post('/:id/confirm', confirmCart);
 
-// Ruta para obtener los últimos carritos confirmados
+// 🔹 Ruta para obtener los últimos carritos confirmados
 router.get('/confirmed', getConfirmedCarts);
 
-// Obtener un carrito por ID
+// 🔹 Obtener un carrito por ID
 router.get('/:id', getCartById);
+
+// 🔹 Finalizar compra de un carrito
+router.post('/:cid/purchase', async (req, res) => {
+  try {
+    const cartId = req.params.cid;
+    const cart = await cartDAO.getById(cartId);
+
+    if (!cart) {
+      return res.status(404).json({ message: 'Carrito no encontrado' });
+    }
+
+    let totalAmount = 0;
+    let productsToPurchase = [];
+    let productsNotProcessed = [];
+
+    for (let item of cart.products) {
+      const product = await productDAO.getById(item.product._id);
+
+      if (product && product.stock >= item.quantity) {
+        // 🔹 Restar stock y agregar a la compra
+        await productDAO.update(product._id, { stock: product.stock - item.quantity });
+
+        totalAmount += product.price * item.quantity;
+        productsToPurchase.push({ id: product._id, title: product.title, quantity: item.quantity });
+      } else {
+        // 🔹 No hay suficiente stock, dejar en el carrito
+        productsNotProcessed.push({
+          id: product._id,
+          title: product.title,
+          requested: item.quantity,
+          available: product ? product.stock : 0
+        });
+      }
+    }
+
+    if (productsToPurchase.length === 0) {
+      return res.status(400).json({
+        message: 'No se pudo procesar la compra, sin stock disponible.',
+        notProcessed: productsNotProcessed
+      });
+    }
+
+    // 🔹 Crear ticket de compra
+    const userEmail = req.user ? req.user.email : 'desconocido@example.com';
+    const ticketData = {
+      amount: totalAmount,
+      purchaser: userEmail
+    };
+
+    const newTicket = await ticketDAO.create(ticketData);
+    if (!newTicket) {
+      return res.status(500).json({ message: 'Error al generar el ticket.' });
+    }
+    
+    const ticketDTO = new TicketDTO(newTicket);
+
+    // 🔹 Filtrar el carrito y mantener solo los productos no procesados
+    cart.products = cart.products.filter(item =>
+      productsNotProcessed.find(p => p.id === item.product._id)
+    );
+    await cartDAO.update(cartId, { products: cart.products });
+
+    return res.status(200).json({
+      message: productsNotProcessed.length === 0 ? 'Compra realizada con éxito' : 'Compra realizada parcialmente',
+      ticket: ticketDTO,
+      notProcessed: productsNotProcessed
+    });
+
+  } catch (error) {
+    console.error('Error en la compra:', error);
+    return res.status(500).json({ message: 'Error en la compra', error });
+  }
+});
 
 module.exports = router;

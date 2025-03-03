@@ -1,10 +1,13 @@
 const mongoose = require('mongoose');
 
 const cartSchema = new mongoose.Schema({
-    products: [{
-        product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
-        quantity: { type: Number, required: true },
-    }],
-}, { timestamps: true });
+  products: [
+    {
+      product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
+      quantity: { type: Number, required: true, min: 1 }
+    }
+  ]
+});
 
-module.exports = mongoose.model('Cart', cartSchema);
+// ✅ Verifica si el modelo ya está definido antes de crearlo
+module.exports = mongoose.models.Cart || mongoose.model('Cart', cartSchema);
